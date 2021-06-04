@@ -11,10 +11,10 @@ import keyboard
 def mambo_init():
     global tko, land
     # Variable that will store the parameters of the mambo drone
-    mamboAdd = "D0:3A:EE:30:E6:20" # ViconObject = Mambo_1
+    #mamboAdd = "D0:3A:EE:30:E6:20" # ViconObject = Mambo_1
     #mamboAdd = "D0:3A:03:39:E6:3B" # ViconObject = Mambo_4
     #mamboAdd = "E0:14:A0:AE:3D:C7" # ViconObject = Mambo_5
-    #mamboAdd = "D0:3A:3A:2D:E6:36" # ViconObject = Mambo_3
+    mamboAdd = "D0:3A:3A:2D:E6:36" # ViconObject = Mambo_3
     wifi = False
     retries = 12
 
@@ -59,7 +59,8 @@ def cb_vicon_data5(data): # ViconObject = Mambo_5
     dt,dr=data.transform.translation, data.transform.rotation
     x_5,y_5,z_5= dt.x, dt.y,dt.z
     rx5,ry5,rz5,rw5 = dr.x, dr.y, dr.z, dr.w
-def doyawangle(yaw, y1, y2, x1, x2):
+def doyawangle(yaw,turn_thresh_prev, y1, y2, x1, x2):
+
     real_angle = turn_thresh = 0
 
     turn_angle = round((math.atan2((y1-y2), (x1-x2))*180/math.pi), 6)
@@ -81,15 +82,18 @@ def doyawangle(yaw, y1, y2, x1, x2):
         turn_thresh = turn_thresh + 360
     elif turn_thresh > 180:
         turn_thresh = turn_thresh - 360
-    if math.fabs(turn_thresh) > 30:  # and (math.fabs(turn_thresh) < 180):
+
+    
+    
+    if math.fabs(turn_thresh) > 5:  # and (math.fabs(turn_thresh) < 180):
         if turn_thresh > 0:
-            y = 100
+            y = 30#*(turn_thresh*0.9 + turn_thresh_prev*0.1)
         elif turn_thresh < 0:
-            y = -100
+            y = -30#*(turn_thresh*0.9 + turn_thresh_prev*0.1)#*(y*0.9+y_prev*0.1)
     else:
         y = 0
-    prev_yaw = yaw
-    return y, turn_thresh
+    turn_thresh_prev = turn_thresh
+    return y, turn_thresh, turn_thresh_prev
 def doforward(x1, x2, y1, y2, pgain):
     
     maxSD, minSD = 0.08, 0.04
@@ -106,7 +110,7 @@ def doforward(x1, x2, y1, y2, pgain):
     return p, distance  # Distance is "error"
 def dovertical(z1):
     global tko, land
-    desiredz = 1.3
+    desiredz = 1
     #pid = [0.5, 0.5, 0.5]
     # diff = z1 - z2 # this is also the error
     des_diff = z1 - desiredz
@@ -227,7 +231,8 @@ def pitchcontroller(x1, y1, x2, y2,prev_dis):
     return pgain_pitch
 def checkcondition_way(x1,y1,x2,y2):
     distance = math.sqrt(math.pow((x2-x1), 2)+math.sqrt(math.pow((y2-y1), 2)))
-    if distance < 0.9:
+    print(distance)
+    if distance < 0.7:
         #print('condition met')
         return True
     else: 
@@ -248,31 +253,31 @@ def do_waypoint(mambo):
         desiredx, desiredy = w1_x, w1_y
         if checkcondition_way(x_1, y_1, w1_x, w1_y):
             current_objective_way = 2
-            mambo.fly_direct(roll=0, pitch=0, yaw=0, vertical_movement=0, duration=0.7)
+            mambo.fly_direct(roll=0, pitch=0, yaw=0, vertical_movement=0, duration=0.1)
             print('Goto waypoint 2')
     if current_objective_way == 2:
         desiredx, desiredy = w2_x, w2_y
         if checkcondition_way(x_1, y_1, w2_x, w2_y):
             current_objective_way = 3
-            mambo.fly_direct(roll=0, pitch=0, yaw=0, vertical_movement=0, duration=0.7)
+            mambo.fly_direct(roll=0, pitch=0, yaw=0, vertical_movement=0, duration=0.1)
             print('Goto waypoint 3')
     if current_objective_way == 3:
         desiredx, desiredy = w3_x, w3_y
         if checkcondition_way(x_1, y_1, w3_x, w3_y):
             current_objective_way = 4
             print('Goto waypoint 4')
-            mambo.fly_direct(roll=0, pitch=0, yaw=0, vertical_movement=0, duration=0.7)
+            mambo.fly_direct(roll=0, pitch=0, yaw=0, vertical_movement=0, duration=0.1)
     if current_objective_way == 4:
         desiredx, desiredy = w4_x, w4_y
         if checkcondition_way(x_1, y_1, w4_x, w4_y):
             current_objective_way = 5
             print('Goto waypoint 1')
-            mambo.fly_direct(roll=0, pitch=0, yaw=0, vertical_movement=0, duration=0.7)
+            mambo.fly_direct(roll=0, pitch=0, yaw=0, vertical_movement=0, duration=0.1)
     if current_objective_way == 5:
         desiredx, desiredy = w5_x, w5_y
         if checkcondition_way(x_1, y_1, w5_x, w5_y):
             current_objective_way = 1
-            mambo.fly_direct(roll=0, pitch=0, yaw=0, vertical_movement=0, duration=0.7)
+            mambo.fly_direct(roll=0, pitch=0, yaw=0, vertical_movement=0, duration=0.1)
 def getroll(x1,y1,x1_prev, y1_prev, yaw, z):
     cor_x = x1 - x1_prev
     cor_y = y1 - y1_prev
@@ -293,7 +298,7 @@ def getroll(x1,y1,x1_prev, y1_prev, yaw, z):
 
         theta=math.acos((cor_angle)/(magnit_cor*magnit_yaw))
         if math.fabs(theta) > 10:
-            r = 15 * math.sin(theta)
+            r = 10* math.sin(theta)
         else:
             r = 0
         print(r)
@@ -312,24 +317,23 @@ def vicon_sys():
     global x_5, y_5, z_5, rw5, rx5, ry5, rz5
     global desiredx, desiredy
     global tko, land
-    global total_time
-    
+    global total_time  
+    global y
 #Declare Waypoint Globals
     global w1_x, w1_y, w2_x, w2_y, w3_x, w3_y, w4_x, w4_y, w5_x, w5_y
     global current_objective_way
     current_objective_way = 1 # start at way point 1
-    desiredx = desiredy = w1_x = w1_y = 0
-    w2_x, w2_y = 2.6, 0.75
-    w3_x, w3_y = 2.6, -1.6
-    w4_x, w4_y = -1.6, -1.6 
-    w5_x, w5_y = -1.6, 0.75 
-
+    desiredx = desiredy = y =0
+    w2_x, w2_y, w1_x , w1_y = 2.1, 0.7, 2.1, 0.7 #2.6, 0.75,  2.6, 0.75
+    w3_x, w3_y = 2.1, -1.7#2.6, -1.6
+    w4_x, w4_y = -1.9, -1.7 #-1.6, -1.6 
+    w5_x, w5_y = -1.9, 0.7#-1.6, 0.75 
 #Init ROS node + Vicon
     rospy.init_node('vicon_reader', anonymous=True)
     rate = rospy.Rate(100)
     # Choose which topic to listen
-    s1_vicon = rospy.Subscriber('/vicon/Mambo_1/Mambo_1', TransformStamped, cb_vicon_data1, buff_size=1)
-    s3_vicon = rospy.Subscriber('/vicon/Mambo_3/Mambo_3', TransformStamped, cb_vicon_data3, buff_size=1)
+    s1_vicon = rospy.Subscriber('/vicon/Mambo_3/Mambo_3', TransformStamped, cb_vicon_data1, buff_size=1)
+    s3_vicon = rospy.Subscriber('/vicon/Mambo_1/Mambo_1', TransformStamped, cb_vicon_data3, buff_size=1)
     s4_vicon = rospy.Subscriber('/vicon/Mambo_4/Mambo_4', TransformStamped, cb_vicon_data4, buff_size=1)
     s5_vicon = rospy.Subscriber('/vicon/Mambo_5/Mambo_5', TransformStamped, cb_vicon_data5, buff_size=1)
 
@@ -337,13 +341,14 @@ def vicon_sys():
 #Declare varibles, i think the global variablesafe_l are already initialized as 0
     x_5= y_5 = z_5 = 0
     prev1_x1 = prev1_y1 = prev1_z1 = prev2_x1 = prev2_y1 = prev2_z1 = prev3_x1 = prev3_y1 = prev3_z1 = filtered_x = filtered_y = filtered_z = 0 
-    prev_yaw = 0
+    y_prev = 0
     rx5 = ry5 = rz5 = rw5 = 0
 
     x_2 = y_2 = 0
     x_3 = y_3 = z_3 = 0
     r = p = y = v = 0
     x1_prev = y1_prev = 0
+
     dur = 0.01
     total_time = 0
     pgain_pitch = prev_dis = 0
@@ -370,7 +375,7 @@ def vicon_sys():
         roll, pitch, yaw1 = quaterion2euler(rx1, ry1, rz1, rw1)
         v = dovertical(z_1)
         
-        y,yaw_diff = doyawangle(yaw1, y_1, desiredy, x_1, desiredx)
+        y,yaw_diff, y_prev = doyawangle(yaw1,y_prev, y_1, desiredy, x_1, desiredx)
         pgain_pitch = pitchcontroller(x_1,y_1,desiredx, desiredy,prev_dis)
 
         # prev1_x1, prev1_y1, prev1_z1, prev2_x1, prev2_y1, prev2_z1, prev3_x1, prev3_y1, prev3_z1 = swap(x_1, y_1, z_1, prev1_x1, prev1_y1, prev1_z1, prev2_x1, prev2_y1, prev2_z1)
@@ -379,7 +384,7 @@ def vicon_sys():
         
         do_waypoint(mambo)
 
-        if math.fabs(yaw_diff) < 45 and (z_1 > 0.7):
+        if math.fabs(yaw_diff) < 10 and (z_1 > 0.5):
             p, prev_dis = doforward(x_1, desiredx, y_1, desiredy, pgain_pitch)
         else:
             p =0
@@ -391,6 +396,7 @@ def vicon_sys():
         total_time = total_time + dt
 
         x1_prev, y1_prev = x_1, y_1
+        print(x_1, y)
 
 #Main function
 if __name__ == '__main__':

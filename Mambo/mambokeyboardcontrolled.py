@@ -6,10 +6,10 @@ from pyparrot.Minidrone import Mambo
 
 
 #Variable that will store the parameters of the mambo drone
-#mamboAdd = "D0:3A:EE:30:E6:20" # ViconObject = Mambo_1
+mamboAdd = "D0:3A:EE:30:E6:20" # ViconObject = Mambo_1
 #mamboAdd = "E0:14:A0:AE:3D:C7" # ViconObject = Mambo_5
 #mamboAdd = "D0:3A:3A:2D:E6:36" # ViconObject = Mambo_3
-mamboAdd = "D0:3A:03:39:E6:3B"  # ViconObject = Mambo_4
+#mamboAdd = "D0:3A:03:39:E6:3B"  # ViconObject = Mambo_4
 wifi = False
 retries = 12
 
